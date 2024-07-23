@@ -6,19 +6,15 @@ Parameters:
   SolutionSourceBucket:
     Type: String
     Description: S3 Bucket Source 
-    Default: auto-disposition-after-contact-using-genai
   ConnectContactLensS3Bucket:
     Type: String
     Description: Connect Contact Lens S3B ucket Location
-    Default: amazon-connect-7dcf509562c9
   ConnectInstanceARN:
     Type: String
     Description: Connect Instance ARN 
-    Default: arn:aws:connect:us-east-1:248161171627:instance/ddaf5944-6f51-49cc-93e5-f46a654d7c0f
   DispositionBucketName:
     Type: String
     Description: New S3 Bucket to add Disposition Codes (Should be lowercase/unique)  Globally Unique
-    Default: riteshcy-auto-disposition
 
 #######################
 # Globals
