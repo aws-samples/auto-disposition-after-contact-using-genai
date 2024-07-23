@@ -8,13 +8,13 @@ Parameters:
     Description: S3 Bucket Source 
   ConnectContactLensS3Bucket:
     Type: String
-    Description: Connect Contact Lens S3B ucket Location
+    Description: Connect Contact Lens S3 Bucket Location
   ConnectInstanceARN:
     Type: String
     Description: Connect Instance ARN 
   DispositionBucketName:
     Type: String
-    Description: New S3 Bucket to add Disposition Codes (Should be lowercase/unique)  Globally Unique
+    Description: New S3 Bucket to add Disposition Codes CSV File (Should be lowercase/unique)  Globally Unique
 
 #######################
 # Globals

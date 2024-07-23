@@ -7,7 +7,7 @@ Call dispositions are essential for Contact Center to track agent performance, i
 It is assumed that you understand the use of the services below and you have the following prerequisites:
 1. An AWS account with both management console and programmatic administrator access.
 2. An existing Amazon Connect instance.
-3. Enable Amazon Bedrock.
+3. Enable Amazon Bedrock (Anthropic Claude 3 Sonnet).
 4. [Amazon Connect Contact Lens post contact summarization is enabled](https://docs.aws.amazon.com/connect/latest/adminguide/view-generative-ai-contact-summaries.html).
 5. Install [nodejs](https://nodejs.org/en) in your local computer
 
