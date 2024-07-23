@@ -1,0 +1,210 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: auto-disposition-after-contact-using-genai
+
+Parameters:
+  SolutionSourceBucket:
+    Type: String
+    Description: S3 Bucket Source 
+    Default: auto-disposition-after-contact-using-genai
+  ConnectContactLensS3Bucket:
+    Type: String
+    Description: Connect Contact Lens S3B ucket Location
+    Default: amazon-connect-7dcf509562c9
+  ConnectInstanceARN:
+    Type: String
+    Description: Connect Instance ARN 
+    Default: arn:aws:connect:us-east-1:248161171627:instance/ddaf5944-6f51-49cc-93e5-f46a654d7c0f
+  DispositionBucketName:
+    Type: String
+    Description: New S3 Bucket to add Disposition Codes (Should be lowercase/unique)  Globally Unique
+    Default: riteshcy-auto-disposition
+
+#######################
+# Globals
+#######################
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    MemorySize: 1024
+    Timeout: 900
+
+Resources:
+#######################
+# ROLE
+#######################
+  ContactLensBucketEventLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName : !Sub '${AWS::StackName}-CLB-LambdaRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: dynamodb
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource: 
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DispositionTable}'
+        - PolicyName: s3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:list*'
+                Resource: 
+                  - !Sub 'arn:aws:s3:::${ConnectContactLensS3Bucket}'
+                  - !Sub 'arn:aws:s3:::${ConnectContactLensS3Bucket}/*'
+        - PolicyName: connect
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'connect:UpdateContactAttributes'
+                Resource: 
+                  - !Sub '${ConnectInstanceARN}/contact/*'
+        - PolicyName: bedrock
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'bedrock:InvokeModel'
+                Resource: 
+                  - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/*'
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  DispositionBucketEventLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName : !Sub '${AWS::StackName}-DBE-LambdaRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: dynamodb
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource: 
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DispositionTable}'
+        - PolicyName: s3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:list*'
+                Resource: 
+                  - !Sub 'arn:aws:s3:::${DispositionBucket}'
+                  - !Sub 'arn:aws:s3:::${DispositionBucket}/*'
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+#######################
+# S3 Bucket - Prompts Bucket
+#######################
+  DispositionBucket:
+    DeletionPolicy: 'Delete'
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref DispositionBucketName
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+ 
+#######################
+# Dynamodb Table 
+#######################
+  DispositionTable:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions: 
+        - AttributeName: dispositionCode
+          AttributeType: S
+      KeySchema: 
+        - AttributeName: dispositionCode
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: DispositionTable
+
+#######################
+# Lambda Functions
+#######################
+  ContactLenS3EventLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-ContactLenS3EventLambda'
+      Handler: index.handler
+      CodeUri: 
+        Bucket: !Ref SolutionSourceBucket
+        Key: source-code.zip
+      Description: ContactLenS3EventLambda
+      Role: !GetAtt ContactLensBucketEventLambdaRole.Arn
+      Environment:
+        Variables:
+          ConnectInstanceARN: !Ref ConnectInstanceARN
+          Disposition: !Ref DispositionTable
+
+  DispositionS3EventLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-DispositionS3EventLambda'
+      Handler: indexDisposition.handler
+      CodeUri: 
+        Bucket: !Ref SolutionSourceBucket
+        Key: source-code.zip
+      Description: DispositionS3EventLambda
+      Role: !GetAtt DispositionBucketEventLambdaRole.Arn
+      Environment:
+        Variables:
+          Disposition: !Ref DispositionTable
+
+#######################
+# OUTPUT
+#######################
+Outputs:
+  ContactLenS3EventLambdaName:
+    Value: !GetAtt ContactLenS3EventLambda.Arn
+  DispositionS3BucketName:
+    Value: !Ref DispositionBucket
