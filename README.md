@@ -1,11 +1,11 @@
 # Auto post contact disposition with Generative AI
 
 ## Introduction
-Call dispositions are essential for Contact Center to track agent performance, identify customer trends, improve customer satisfaction, and meet compliance requirements. By categorizing the outcome of each call, managers gain valuable insights into agent effectiveness, common customer issues, and areas needing improvement. However, ensuring accuracy, consistency, and efficient use of dispositions pose challenges, along with managing the large volume of data generated. Using Generative AI auto call disposition feature, Contact Centers can maximize the benefits of call dispositions and enhance overall performance.
+Call dispositions are essential for the Contact Center to track agent performance, identify customer trends, improve customer satisfaction, and meet compliance requirements. Categorizing the outcome of each call provides managers with valuable insights into agent effectiveness, common customer issues, and areas needing improvement. However, ensuring accuracy, consistency, and efficient use of dispositions poses challenges, along with managing the large volume of data generated. Using Generative AI auto call disposition feature, Contact Centers can maximize the benefits of call dispositions and enhance overall performance.
 
 ## Prerequisites
 It is assumed that you understand the use of the services below and you have the following prerequisites:
-1. An AWS account with both management console and programmatic administrator access.
+1. An AWS account that grants both management console and programmatic administrator access.
 2. An existing Amazon Connect instance.
 3. Enable Amazon Bedrock (Anthropic Claude 3 Sonnet).
 4. [Amazon Connect Contact Lens post contact summarization is enabled](https://docs.aws.amazon.com/connect/latest/adminguide/view-generative-ai-contact-summaries.html).
@@ -17,7 +17,7 @@ It is assumed that you understand the use of the services below and you have the
 
 In the below architecture, there are five mains steps:
 
-1. You upload the disposition code name and definition in the csv file for the LLM to identify correct disposition code for you business.
+1. You upload the disposition code name and definition in the csv file for the LLM to identify correct disposition code for your business.
 
 2. Amazon Connect Contact lens delivers the speech analytics output file in the Amazon S3 bucket. The Contact lens file contains the transcript and the conversation summary.
 
@@ -42,7 +42,7 @@ Note: The update to the Contact attribute will reprocess the Contact Record thro
 7. The following parameters are needed for the CFT
     1. **ConnectContactLensS3Bucket:** Copy the Data storage S3 bucket name (only) from the Amazon Connect instance, where Amazon Connect delivers the Contact Lens output file.
     2. **ConnectInstanceARN**: Copy it from the Amazon Connect console.
-    3. **DispositionBucketName** : Should be globally uniqie
+    3. **DispositionBucketName** : Should be globally unique
     4. **SolutionSourceBucket**: Created in step 4
     ![Properties](images/cft-stack.png?raw=true)
 8. Once CloudFormation execution is successful, configure the Amazon S3 event.
@@ -93,14 +93,14 @@ Note: The update to the Contact attribute will reprocess the Contact Record thro
     4. Select **Put** under event types
     5. Under the destination, select Lambda function (or put the Lambda ARN) and specific the AWS lambda function name **“DispositionS3EventLambda”**
 11. Download the **"dispositioncodes.csv"** file [here](csv/) from location here 
-12. Update the **"dispositioncode.csv"** with disposition code name and the definition.
+12. Update the **"dispositioncodes.csv"** with disposition code name and the definition.
 13. Upload the updated **"dispositioncodes.csv"** to S3 bucket created as part of CFT execution (same as step 10)
 
 ## Validate
-1. You see the disposition code name and the disposition definitions in the Amazon DynamoDB table. Similar to below screesnhot.
+1. You see the disposition code name and the disposition definitions in the Amazon DynamoDB table. Similar to below screenshot.
 ![Properties](images/dynamodb.png?raw=true)
-2. Place test calls to your Amazon Connect instance and have conversation with the agent. 
-3. Validate you see the Contact Summarization in the contact search page. **If no contact summary is generated, the auto disposition will not work as summary is necessary for the LLM to provide correct disposition code name (i.e. improve accuracy)**
+2. Place test calls to your Amazon Connect instance and have a conversation with the agent. 
+3. Validate you see the Contact Summarization in the contact search page. **If no contact summary is generated, the auto disposition will not work as summary is necessary for the LLM to provide the correct disposition code name (i.e. improve accuracy)**
 ![Properties](images/cl-summary.png?raw=true)
 4. You will see the disposition code in the Contact Search page under the contact attribute
 ![Properties](images/disposition-code.png?raw=true)
